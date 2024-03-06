@@ -169,26 +169,25 @@ void clear() {
 // Top Row = 2.8875
 
 int main() {
+setup_dot_matrix(); /* setup matric */
   while (1) {
     i = sample();
-    Aout = (int(i * 8)) / 8.0; // 8 DISCRETE LEVELS
+    calculation = (int(i * 8)) / 8.0;
+    Aout = calculation; // 8 DISCRETE LEVELS
+    // da_star();
+    get_display(calculation);
+    pattern_to_display(pattern);
+    LEDout = HIGH;
     wait_us(10000);
-    setup_dot_matrix(); /* setup matric */
-    while (1) {
-      // da_star();
-      pattern_to_display(pattern);
-      LEDout = HIGH;
-      thread_sleep_for(1000);
-      LEDout = LOW;
-      // //pc.printf("Hello World\n");
-      // pattern_to_display(pattern_square);
-      // thread_sleep_for(1000);
-      // LEDout = HIGH;
-      // pattern_to_display(pattern_star);
-      // thread_sleep_for(1000);
-      // LEDout = LOW;
-      // thread_sleep_for(1000);
-      // clear();
-    }
+    LEDout = LOW;
+    // //pc.printf("Hello World\n");
+    // pattern_to_display(pattern_square);
+    // thread_sleep_for(1000);
+    // LEDout = HIGH;
+    // pattern_to_display(pattern_star);
+    // thread_sleep_for(1000);
+    // LEDout = LOW;
+    // thread_sleep_for(1000);
+    // clear();
   }
 }
