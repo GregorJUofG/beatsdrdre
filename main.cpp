@@ -85,21 +85,21 @@ void get_display(float discreteValue) {
   // in the if statement need to replace 0x00 with whatever row/column
   tempZero = pattern[0];
   if (discreteValue == 0) {
-    pattern[0] = 0x01;
+    pattern[0] = 1;
   } else if (discreteValue == 0.4125) {
-    pattern[0] = 0x2;
+    pattern[0] = 2;
   } else if (discreteValue == 0.8250) {
-    pattern[0] = 0x4;
+    pattern[0] = 3;
   } else if (discreteValue == 1.2375) {
-    pattern[0] = 0x08;
+    pattern[0] = 4;
   } else if (discreteValue == 1.6500) {
-    pattern[0] = 0x10;
+    pattern[0] = 5;
   } else if (discreteValue == 2.0625) {
-    pattern[0] = 0x20;
+    pattern[0] = 6;
   } else if (discreteValue == 2.4750) {
-    pattern[0] = 0x40;
+    pattern[0] = 7;
   } else {
-    pattern[0] = 0x80;
+    pattern[0] = 8;
   }
   for (int i = 1; i <= 7; i++) {
     if (i == 1) {
