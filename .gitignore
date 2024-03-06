@@ -1,3 +1,10 @@
+BUILD
+.mbed
+compile_commands.json
+.clangd
+.cache
+mbed-os
+
 # Prerequisites
 *.d
 
@@ -29,4 +36,5 @@
 # Executables
 *.exe
 *.out
+*.app
 *.app
