@@ -84,7 +84,7 @@ float sample() {
 void get_display(float discreteValue) {
   for(int increment = 0; increment<8; incrememnt++){
     if(pattern[increment]%0x10 == 0x01){
-      pattern[incremen t] = pattern[increment] - 0x01;
+      pattern[increment] = pattern[increment] - 0x01;
     }
     pattern[increment]/0x02;
   }
