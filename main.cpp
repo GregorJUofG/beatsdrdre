@@ -46,7 +46,7 @@ float calculation = 0;
 // char  pattern_diagonal[8] = { 0x01, 0x2,0x4,0x08,0x10,0x20,0x40,0x80};
 // char  pattern_square[8] = { 0xff, 0x81,0x81,0x81,0x81,0x81,0x81,0xff};
 // char  pattern_star[8] = { 0x04, 0x15, 0x0e, 0x1f, 0x0e, 0x15, 0x04, 0x00};
-char pattern[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+char pattern[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 char tempZero;
 char tempOne;
 char temp;
@@ -82,34 +82,28 @@ float sample() {
 }
 
 void get_display(float discreteValue) {
-  // in the if statement need to replace 0x00 with whatever row/column
-  tempZero = pattern[0];
-  if (discreteValue == 0) {
-    pattern[0] = 1;
-  } else if (discreteValue == 0.4125) {
-    pattern[0] = 2;
-  } else if (discreteValue == 0.8250) {
-    pattern[0] = 3;
-  } else if (discreteValue == 1.2375) {
-    pattern[0] = 4;
-  } else if (discreteValue == 1.6500) {
-    pattern[0] = 5;
-  } else if (discreteValue == 2.0625) {
-    pattern[0] = 6;
-  } else if (discreteValue == 2.4750) {
-    pattern[0] = 7;
-  } else {
-    pattern[0] = 8;
-  }
-  for (int i = 1; i <= 7; i++) {
-    if (i == 1) {
-      tempOne = pattern[i];
-      pattern[i] = tempZero;
-    } else {
-      temp = pattern[i];
-      pattern[i] = tempOne;
-      tempOne = temp;
+  for(int increment = 0; increment<8; incrememnt++){
+    if(pattern[increment]%0x10 == 0x01){
+      pattern[incremen t] = pattern[increment] - 0x01;
     }
+    pattern[increment]/0x02;
+  }
+  if (discreteValue == 0) {
+    pattern[7] = pattern[7] + 0x80;
+  } else if (discreteValue == 0.4125) {
+    pattern[6] = pattern[6] + 0x80;
+  } else if (discreteValue == 0.8250) {
+    pattern[5] = pattern[5] - 0x80;
+  } else if (discreteValue == 1.2375) {
+    pattern[4] = pattern[4] + 0x80;
+  } else if (discreteValue == 1.6500) {
+    pattern[3] = pattern[3] + 0x80;
+  } else if (discreteValue == 2.0625) {
+    pattern[2] = pattern[2] + 0x80;
+  } else if (discreteValue == 2.4750) {
+    pattern[1] = pattern[1]+0x80;
+  } else {
+    pattern[0] = pattern[0]+0x80;
   }
 }
 
