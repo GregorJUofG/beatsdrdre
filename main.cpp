@@ -47,9 +47,6 @@ float calculation = 0;
 // char  pattern_square[8] = { 0xff, 0x81,0x81,0x81,0x81,0x81,0x81,0xff};
 // char  pattern_star[8] = { 0x04, 0x15, 0x0e, 0x1f, 0x0e, 0x15, 0x04, 0x00};
 char pattern[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-char tempZero;
-char tempOne;
-char temp;
 /*
 Write to the maxim via SPI
 args register and the column data
@@ -82,28 +79,32 @@ float sample() {
 }
 
 void get_display(float discreteValue) {
-  for(int increment = 0; increment<8; incrememnt++){
-    if(pattern[increment]%0x10 == 0x01){
-      pattern[increment] = pattern[increment] - 0x01;
+  for(int increment = 0; increment<8; increment++){
+    if(pattern[increment]%16 == 1){
+      pattern[increment] = pattern[increment] - 1;
     }
-    pattern[increment]/0x02;
+    pattern[increment] = pattern[increment]/2;
   }
-  if (discreteValue == 0) {
+
+  // if the display isn't picking up some rows then change dividedValue
+  float dividedValue = 1.5 / 10; // Calculate the value to be divided by
+  
+  if (discreteValue >= 0 && discreteValue < dividedValue) {
     pattern[7] = pattern[7] + 0x80;
-  } else if (discreteValue == 0.4125) {
+  } else if (discreteValue >= dividedValue && discreteValue < 2 * dividedValue) {
     pattern[6] = pattern[6] + 0x80;
-  } else if (discreteValue == 0.8250) {
-    pattern[5] = pattern[5] - 0x80;
-  } else if (discreteValue == 1.2375) {
+  } else if (discreteValue >= 2 * dividedValue && discreteValue < 3 * dividedValue) {
+    pattern[5] = pattern[5] + 0x80;
+  } else if (discreteValue >= 3 * dividedValue && discreteValue < 4 * dividedValue) {
     pattern[4] = pattern[4] + 0x80;
-  } else if (discreteValue == 1.6500) {
+  } else if (discreteValue >= 4 * dividedValue && discreteValue < 5 * dividedValue) {
     pattern[3] = pattern[3] + 0x80;
-  } else if (discreteValue == 2.0625) {
+  } else if (discreteValue >= 5 * dividedValue && discreteValue < 6 * dividedValue) {
     pattern[2] = pattern[2] + 0x80;
-  } else if (discreteValue == 2.4750) {
-    pattern[1] = pattern[1]+0x80;
-  } else {
-    pattern[0] = pattern[0]+0x80;
+  } else if (discreteValue >= 6 * dividedValue && discreteValue < 7 * dividedValue) {
+    pattern[1] = pattern[1] + 0x80;
+  } else if (discreteValue >= 7*dividedValue && discreteValue < 3){ //this 3 can be changed depending on what the max input is
+    pattern[0] = pattern[0] + 0x80;
   }
 }
 
@@ -171,8 +172,8 @@ setup_dot_matrix(); /* setup matric */
     // da_star();
     get_display(calculation);
     pattern_to_display(pattern);
-    LEDout = HIGH;
-    wait_us(10000);
+    Dout = HIGH;
+    wait_us(999999);
     LEDout = LOW;
     // //pc.printf("Hello World\n");
     // pattern_to_display(pattern_square);
