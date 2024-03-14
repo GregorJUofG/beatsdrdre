@@ -172,7 +172,7 @@ setup_dot_matrix(); /* setup matric */
     // da_star();
     get_display(calculation);
     pattern_to_display(pattern);
-    Dout = HIGH;
+    LEDout = HIGH;
     wait_us(999999);
     LEDout = LOW;
     // //pc.printf("Hello World\n");
