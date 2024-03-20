@@ -1,6 +1,9 @@
-// #include "SerialStream.h"
 #include "mbed.h"
-
+#include "TextLCD.h"
+#include <ctime>
+#include <chrono>
+// #include "platform/mbed_thread.h"
+// #include <string>
 
 #define max7219_reg_noop 0x00
 #define max7219_reg_digit0 0x01
@@ -23,6 +26,11 @@
 DigitalOut gpo(p12);
 AnalogOut Aout(p18);
 AnalogIn Ain(p17);
+
+DigitalIn displaySwitch(p21);
+
+TextLCD lcd(p23, p25, p27, p28, p29, p30, TextLCD::LCD16x2); 
+
 // FDRM PTD2 = MOSI, PTD1 = SCLK, LOAD = PTDO (digital pin);
 // LPC1768 mosi = p5, sclk = p7, load = p8;
 SPI max72_spi(p5, NC, p7);
@@ -34,83 +42,64 @@ BufferedSerial serial(USBTX, USBRX, 115200);
 // SerialStream<BufferedSerial> pc(serial);
 
 int counter = 0;
+int pauseCounter = 0;
 float alpha = 0.2;
 float i;
 float processed;
 float previous;
-float processedArray[1000] = {0};
+float processedArray[200] = {0};
 float sum;
 float rollingAvg;
 float normalised;
 float calculation = 0;
+char pattern[8] = {};
+int matrixVal;
+double bpm;
+bool firstPeak;
+bool thereWasAFirstPeak;
+bool secondPeak;
+auto startTime;
+auto endTime
 // char  pattern_diagonal[8] = { 0x01, 0x2,0x4,0x08,0x10,0x20,0x40,0x80};
 // char  pattern_square[8] = { 0xff, 0x81,0x81,0x81,0x81,0x81,0x81,0xff};
 // char  pattern_star[8] = { 0x04, 0x15, 0x0e, 0x1f, 0x0e, 0x15, 0x04, 0x00};
-char pattern[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-char tempZero;
-char tempOne;
-char temp;
 /*
 Write to the maxim via SPI
 args register and the column data
 */
 
 float sample() {
-  i = Ain;
+    // Read in the sample
+    i = Ain;
 
-  // 1ST ORDER FILTER
-  processed = alpha * i + (1 - alpha) * processedArray[((counter - 1) % 1000)];
+    // 1ST ORDER FILTER
+    processed = alpha * i + (1 - alpha) * processedArray[199];
 
-  processedArray[(counter) % 1000] = processed;
+    // Saving the filtered value to an array of 200 elements
 
-  // Loop through all samples in the array and get the rolling average value
-  sum = 0;
-  rollingAvg = 0;
-  for (int j = 0; j < 200; j++) {
-    sum = sum + processedArray[j];
-  }
-
-  rollingAvg = sum / 200;
-  normalised = processed - rollingAvg + 0.3;
-
-  counter++;
-  if (counter >= 1000) {
-    counter = 0;
-  }
-
-  return normalised;
-}
-
-void get_display(float discreteValue) {
-  // in the if statement need to replace 0x00 with whatever row/column
-  tempZero = pattern[0];
-  if (discreteValue == 0) {
-    pattern[0] = 1;
-  } else if (discreteValue == 0.4125) {
-    pattern[0] = 2;
-  } else if (discreteValue == 0.8250) {
-    pattern[0] = 3;
-  } else if (discreteValue == 1.2375) {
-    pattern[0] = 4;
-  } else if (discreteValue == 1.6500) {
-    pattern[0] = 5;
-  } else if (discreteValue == 2.0625) {
-    pattern[0] = 6;
-  } else if (discreteValue == 2.4750) {
-    pattern[0] = 7;
-  } else {
-    pattern[0] = 8;
-  }
-  for (int i = 1; i <= 7; i++) {
-    if (i == 1) {
-      tempOne = pattern[i];
-      pattern[i] = tempZero;
-    } else {
-      temp = pattern[i];
-      pattern[i] = tempOne;
-      tempOne = temp;
+    // UNTESTED CODE
+    for (int index = 199; index >= 0; index--){
+      processedArray[index+1] = processedArray[index]
     }
-  }
+    processedArray[199] = processed;
+
+    counter++;
+    if (counter>199) {
+        
+        sum = 0; rollingAvg = 0;
+        for (int j = 0; j < 199; j++) {
+            sum = sum + processedArray[j];
+        }
+
+        rollingAvg = sum / 200;
+    }
+
+    // Normalise the filtered value using the rolling average
+    // and a constant number to bring value positive
+    normalised = processed - rollingAvg;
+
+    // Return the single normalised value
+    return normalised;
 }
 
 void write_to_max(int reg, int col) {
@@ -155,39 +144,112 @@ void clear() {
     write_to_max(e, 0);
   }
 }
-// wait_ms has been depreciated
-// ThisThread::sleep_for(BLINKING_RATE) is now used
 
-// specific levels
-// Bottom row = 0
-// 0.4125
-// 0.8250
-// 1.2375
-// 1.6500
-// 2.0625
-// 2.4750
-// Top Row = 2.8875
+void get_bpm(float calculation){
+  if(calculation*8 + 1 >= 5){
+          // second peak
+          if(firstPeak == false && thereWasAFirstPeak == true && secondPeak == false){
+            endTime = std::chrono::high_resolution_clock::now();
+            secondPeak = true;
+          // first peak
+          }else if(firstPeak == false && thereWasAFirstPeak == false && secondPeak == false){
+            firstPeak == true;
+            thereWasAFirstPeak = false;
+            startTime = std::chrono::high_resolution_clock::now();
+          }
+        }else{
+          //second peak has passed
+          if(firstPeak == false && thereWasAFirstPeak == false && secondPeak == false){
+            firstPeak = false;
+            thereWasAFirstPeak = false;
+            secondPeak = false;
+            bpm = 60((std::chrono::duration<double, std::milli>(t_end-t_start).count())/1000);
+          //first peak has past
+          }else if(firstPeak == true && thereWasAFirstPeak == true && secondPeak == false){
+            firstPeak = false;
+          }
+        }
+}
 
 int main() {
-setup_dot_matrix(); /* setup matric */
-  while (1) {
-    i = sample();
-    calculation = (int(i * 8)) / 8.0;
-    Aout = calculation; // 8 DISCRETE LEVELS
-    // da_star();
-    get_display(calculation);
-    pattern_to_display(pattern);
-    LEDout = HIGH;
-    wait_us(10000);
-    LEDout = LOW;
-    // //pc.printf("Hello World\n");
-    // pattern_to_display(pattern_square);
-    // thread_sleep_for(1000);
-    // LEDout = HIGH;
-    // pattern_to_display(pattern_star);
-    // thread_sleep_for(1000);
-    // LEDout = LOW;
-    // thread_sleep_for(1000);
-    // clear();
+    setup_dot_matrix(); /* setup matric */
+    while (1) {
+        i = sample();
+        calculation = (int(i * 8)) / 8.0; // 8 DISCRETE LEVELS
+        // calculation is floating point between 0 and 1
+        Aout = calculation;
+        // This value between 0 and 1 is passed into get display
+        // get_display(calculation);
+
+        //calculating the bpm
+        get_bpm(calculation);
+
+        if(displaySwitch == HIGH){
+          lcd.printf("BPM: " + bpm);//need to add the bpm calculation
+        }else{
+          if(calculation*8 + 1 >= 5){
+            LED1 = HIGH;
+          }
+          LED1 = LOW;
+        }
+
+        pauseCounter++;
+        if(pauseCounter > 20){
+            // shift the columns left
+            matrixVal = 0;
+            for (int j=0; j<7; j++) {
+                pattern[j] = pattern[j+1];
+            }
+
+            //calculate what led in the column to light up
+            for (int j=0; j < ((calculation*8)+1); j++) {
+                //first loop
+                if(matrixVal == 0){
+                  matrixVal  = 1;
+                //every other loop
+                }else{
+                  matrixVal *= 2;
+                }
+            }
+
+            // light up the rightmost column
+            pattern[7] = matrixVal;
+            pauseCounter = 0;
+        }
+        pattern_to_display(pattern);
+        // pc.printf("Hello World\n");
+  }
+}
+
+// ================= UNUSED CODE ================= 
+
+// The value passed in is between 0 and 1
+void get_display(float discreteValue) {
+  for(int increment = 0; increment<8; increment++){
+    if(pattern[increment]%16 == 1){
+      pattern[increment] = pattern[increment] - 1;
+    }
+    pattern[increment] = pattern[increment]/2;
+  }
+
+  // if the display isn't picking up some rows then change dividedValue
+  float dividedValue = 1.5 / 10; // Calculate the value to be divided by
+  
+  if (discreteValue >= 0 && discreteValue < dividedValue) {
+    pattern[7] = pattern[7] + 0x80;
+  } else if (discreteValue >= dividedValue && discreteValue < 2 * dividedValue) {
+    pattern[6] = pattern[6] + 0x80;
+  } else if (discreteValue >= 2 * dividedValue && discreteValue < 3 * dividedValue) {
+    pattern[5] = pattern[5] + 0x80;
+  } else if (discreteValue >= 3 * dividedValue && discreteValue < 4 * dividedValue) {
+    pattern[4] = pattern[4] + 0x80;
+  } else if (discreteValue >= 4 * dividedValue && discreteValue < 5 * dividedValue) {
+    pattern[3] = pattern[3] + 0x80;
+  } else if (discreteValue >= 5 * dividedValue && discreteValue < 6 * dividedValue) {
+    pattern[2] = pattern[2] + 0x80;
+  } else if (discreteValue >= 6 * dividedValue && discreteValue < 7 * dividedValue) {
+    pattern[1] = pattern[1] + 0x80;
+  } else if (discreteValue >= 7*dividedValue && discreteValue < 3.3){ //this 3 can be changed depending on what the max input is
+    pattern[0] = pattern[0] + 0x80;
   }
 }
