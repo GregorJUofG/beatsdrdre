@@ -41,6 +41,7 @@ DigitalOut LEDout(LED1); // will provide the load signal
 BufferedSerial serial(USBTX, USBRX, 115200);
 // SerialStream<BufferedSerial> pc(serial);
 
+Ticker ticker;
 int counter = 0;
 int pauseCounter = 0;
 float alpha = 0.2;
@@ -54,13 +55,14 @@ float normalised;
 float calculation = 0;
 char pattern[8] = {};
 int matrixVal;
-double bpm;
+int bpm;
 bool firstPeak = false;
 bool thereWasAFirstPeak = false;
 bool secondPeak = false;
 auto startTime;
 auto endTime
 bool stillAPeak = false;
+bool readyToDisplay = false;
 // char  pattern_diagonal[8] = { 0x01, 0x2,0x4,0x08,0x10,0x20,0x40,0x80};
 // char  pattern_square[8] = { 0xff, 0x81,0x81,0x81,0x81,0x81,0x81,0xff};
 // char  pattern_star[8] = { 0x04, 0x15, 0x0e, 0x1f, 0x0e, 0x15, 0x04, 0x00};
@@ -146,8 +148,8 @@ void clear() {
   }
 }
 
-void get_bpm(float calculation){
-  if(calculation*8 + 1 >= 5){
+void get_bpm(float level){
+  if(level*8 + 1 >= 5){
           // second peak
           if(firstPeak == false && thereWasAFirstPeak == true && secondPeak == false && stillAPeak == false){
             endTime = std::chrono::high_resolution_clock::now();
@@ -168,6 +170,7 @@ void get_bpm(float calculation){
             secondPeak = false;
             stillAPeak = false;
             bpm = 60((std::chrono::duration<double, std::milli>(t_end-t_start).count())/1000);
+            readyToDisplay = true;
             // set the startTime to the new time
             startTime = endTime;
           //first peak has passed
@@ -178,51 +181,58 @@ void get_bpm(float calculation){
         }
 }
 
+void update_display(float level){
+  matrixVal = 0;
+  // shift the columns left
+  for (int j=0; j<8; j++) {
+    pattern[j] = pattern[j+1];
+  }
+
+  //calculate what led in the column to light up
+  for (int j=0; j < ((level*8)+1); j++) {
+    //first loop
+    if(matrixVal == 0){
+      matrixVal  = 1;
+    //every other loop
+    }else{
+      matrixVal *= 2;
+    }
+  }
+
+  // light up the rightmost column
+  pattern[7] = matrixVal;
+
+}
+
 int main() {
     setup_dot_matrix(); /* setup matric */
     while (1) {
-        i = sample();
-        calculation = (int(i * 8)) / 8.0; // 8 DISCRETE LEVELS
-        // calculation is floating point between 0 and 1
-        Aout = calculation;
-        // This value between 0 and 1 is passed into get display
-        // get_display(calculation);
 
-        //calculating the bpm
-        get_bpm(calculation);
-
-        if(displaySwitch == HIGH){
-          lcd.printf("BPM: " + bpm);//need to add the bpm calculation
+        if(displaySwitch == HIGH && readyToDisplay == true){
+            lcd.printf("BPM: %d", bpm);
         }else{
           if(calculation*8 + 1 >= 5){
             LED1 = HIGH;
+          }else{
+            LED1 = LOW;
           }
-          LED1 = LOW;
         }
 
-        pauseCounter++;
-        if(pauseCounter > 20){
-            // shift the columns left
-            matrixVal = 0;
-            for (int j=0; j<8; j++) {
-                pattern[j] = pattern[j+1];
-            }
+        // sample, calculate bpm and update display every 10ms
+        if (ticker.read_ms() >= 10) {
+            ticker.reset();
 
-            //calculate what led in the column to light up
-            for (int j=0; j < ((calculation*8)+1); j++) {
-                //first loop
-                if(matrixVal == 0){
-                  matrixVal  = 1;
-                //every other loop
-                }else{
-                  matrixVal *= 2;
-                }
-            }
-
-            // light up the rightmost column
-            pattern[7] = matrixVal;
-            pauseCounter = 0;
+          i = sample();
+          calculation = (int(i * 8)) / 8.0; // 8 DISCRETE LEVELS
+          // calculation is floating point between 0 and 1
+          Aout = calculation;
+        
+          //calculating the bpm
+          get_bpm(calculation);
+            
+          update_display(calculation);
         }
+
         pattern_to_display(pattern);
         // pc.printf("Hello World\n");
   }
