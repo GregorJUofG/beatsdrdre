@@ -55,11 +55,12 @@ float calculation = 0;
 char pattern[8] = {};
 int matrixVal;
 double bpm;
-bool firstPeak;
-bool thereWasAFirstPeak;
-bool secondPeak;
+bool firstPeak = false;
+bool thereWasAFirstPeak = false;
+bool secondPeak = false;
 auto startTime;
 auto endTime
+bool stillAPeak = false;
 // char  pattern_diagonal[8] = { 0x01, 0x2,0x4,0x08,0x10,0x20,0x40,0x80};
 // char  pattern_square[8] = { 0xff, 0x81,0x81,0x81,0x81,0x81,0x81,0xff};
 // char  pattern_star[8] = { 0x04, 0x15, 0x0e, 0x1f, 0x0e, 0x15, 0x04, 0x00};
@@ -148,25 +149,31 @@ void clear() {
 void get_bpm(float calculation){
   if(calculation*8 + 1 >= 5){
           // second peak
-          if(firstPeak == false && thereWasAFirstPeak == true && secondPeak == false){
+          if(firstPeak == false && thereWasAFirstPeak == true && secondPeak == false && stillAPeak == false){
             endTime = std::chrono::high_resolution_clock::now();
             secondPeak = true;
+            stillAPeak = true;
           // first peak
-          }else if(firstPeak == false && thereWasAFirstPeak == false && secondPeak == false){
+          }else if(firstPeak == false && thereWasAFirstPeak == false && secondPeak == false && stillAPeak ==false){
             firstPeak == true;
             thereWasAFirstPeak = false;
+            stillAPeak = true;
             startTime = std::chrono::high_resolution_clock::now();
           }
         }else{
           //second peak has passed
-          if(firstPeak == false && thereWasAFirstPeak == false && secondPeak == false){
+          if(firstPeak == false && thereWasAFirstPeak == true && secondPeak == true && stillAPeak == true){
             firstPeak = false;
-            thereWasAFirstPeak = false;
+            thereWasAFirstPeak = true;
             secondPeak = false;
+            stillAPeak = false;
             bpm = 60((std::chrono::duration<double, std::milli>(t_end-t_start).count())/1000);
-          //first peak has past
-          }else if(firstPeak == true && thereWasAFirstPeak == true && secondPeak == false){
+            // set the startTime to the new time
+            startTime = endTime;
+          //first peak has passed
+          }else if(firstPeak == true && thereWasAFirstPeak == true && secondPeak == false && stillAPeak == true){
             firstPeak = false;
+            stillAPeak = false;
           }
         }
 }
