@@ -204,7 +204,7 @@ int main() {
         if(pauseCounter > 20){
             // shift the columns left
             matrixVal = 0;
-            for (int j=0; j<7; j++) {
+            for (int j=0; j<8; j++) {
                 pattern[j] = pattern[j+1];
             }
 
